@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "req-check",
+  "account_id": "ba68f4156406835d36447ffac40ad022",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "keep_vars": true,
+  "assets": {
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "observability": { "enabled": false },
+  "vars": { "ACCESS_ALLOWED_EMAIL_DOMAIN": "cleveroad.com" }
+}
