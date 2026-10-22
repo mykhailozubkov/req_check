@@ -13,6 +13,6 @@ function run(script, parameters) {
 }
 run('../node_modules/vinext/dist/cli.js', ['build']);
 const config = JSON.parse(readFileSync(new URL('../dist/server/wrangler.json', import.meta.url), 'utf8'));
-if (config.assets?.run_worker_first !== true) throw new Error('Deployment blocked: assets must pass through the private Worker.');
+if (!Array.isArray(config.assets?.run_worker_first) || !config.assets.run_worker_first.includes('/api/*')) throw new Error('Deployment blocked: API routes must run through the application Worker.');
 if (config.preview_urls !== false) throw new Error('Deployment blocked: preview URLs must stay disabled.');
 run('../node_modules/wrangler/bin/wrangler.js', ['deploy', '--config', 'dist/server/wrangler.json', '--keep-vars', ...args]);

@@ -47,8 +47,8 @@ npm run build
 
 Автоматические тесты подменяют внешний API: проверяют контракт запроса, цитаты, валидацию, отсутствие ключа, ошибки и лимиты. Они не измеряют качество живой модели. После подключения реального ключа нужно оценить ложные замечания, пропуски и сохранение бизнес-смысла на согласованном наборе стори.
 
-Приватный доступ размещённой версии обеспечивает Cloudflare Access. Worker проверяет подпись JWT, аудиторию приложения, срок действия и домен email `cleveroad.com`; без настроенной защиты production-версия закрыта. Локальный dev-сервер предназначен для разработки. Стек: React, TypeScript, Vinext/Vite, серверный route handler, Cloudflare Workers. AI вызывается через Messages API без дополнительных SDK. D1 пока не используется, документы остаются в рамках сессии.
+Размещённая версия общедоступна: https://req-check.mykhailo-zubkov.workers.dev. Для анализа каждый пользователь вводит собственный Claude API-ключ. Обязательная проверка Cloudflare Access в Worker отключена; настройки Access в аккаунте не изменяются. Локальный dev-сервер предназначен для разработки. Стек: React, TypeScript, Vinext/Vite, серверный route handler, Cloudflare Workers. AI вызывается через Messages API без дополнительных SDK. D1 пока не используется, документы остаются в рамках сессии.
 
-Прямой деплой: `npm run deploy:dry-run`, затем `npm run deploy`. Пошаговая настройка закрытого доступа, переменных Cloudflare и последующее подключение D1 описаны в [DEPLOYMENT.md](DEPLOYMENT.md).
+Прямой деплой: `npm run deploy:dry-run`, затем `npm run deploy`. Порядок публикации и последующее подключение D1 описаны в [DEPLOYMENT.md](DEPLOYMENT.md).
 
 Документация провайдера: https://platform.claude.com/docs/en/build-with-claude/structured-outputs

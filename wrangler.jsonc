@@ -10,8 +10,7 @@
   "keep_vars": true,
   "assets": {
     "binding": "ASSETS",
-    "run_worker_first": true
+    "run_worker_first": ["/api/*"]
   },
-  "observability": { "enabled": false },
-  "vars": { "ACCESS_ALLOWED_EMAIL_DOMAIN": "cleveroad.com" }
+  "observability": { "enabled": false }
 }
