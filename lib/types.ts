@@ -17,5 +17,5 @@ export type Review = {
   rewrite: string;
   changes: { kind: 'editorial' | 'decision_required' | 'ba_decision'; description: string }[];
   openQuestions: { findingId: string; question: string }[];
-  meta: { provider: string; model: string; policyVersion: string; generatedAt: string; demo: boolean };
+  meta: { provider: string; model: string; routingModel?: string; policyVersion: string; generatedAt: string; demo: boolean };
 };

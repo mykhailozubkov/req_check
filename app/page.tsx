@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDownToLine, ArrowLeft, ArrowRight, Check, CheckCheck, ChevronDown, ChevronRight, CircleHelp, Clipboard, FileText, FlaskConical, Focus, Layers3, LoaderCircle, Plus, ScanLine, Settings2, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { ArrowDownToLine, ArrowLeft, ArrowRight, Check, CheckCheck, ChevronDown, ChevronRight, CircleHelp, Clipboard, FileText, FlaskConical, Focus, Layers3, LoaderCircle, Plus, ScanLine, ShieldCheck, Sparkles, X } from 'lucide-react';
 import { EXAMPLE_STORY } from '../lib/example';
 import { DEMO_REVIEW } from '../lib/demo';
 import type { FindingType, Review } from '../lib/types';
@@ -31,8 +31,7 @@ export default function Home() {
   const [filter, setFilter] = useState<'all' | FindingType>('all');
   const [settings, setSettings] = useState(false);
   const [policy, setPolicy] = useState(false);
-  const [key, setKey] = useState('');
-  const [model, setModel] = useState('claude-sonnet-4-6');
+  const [providerReady, setProviderReady] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -51,6 +50,20 @@ export default function Home() {
   useEffect(() => { if (!notice) return; const t = setTimeout(() => setNotice(''), 4000); return () => clearTimeout(t); }, [notice]);
   useEffect(() => { if (settings) settingsRef.current?.showModal(); else settingsRef.current?.close(); }, [settings]);
   useEffect(() => { if (policy) policyRef.current?.showModal(); else policyRef.current?.close(); }, [policy]);
+  useEffect(() => {
+    const statusController = new AbortController();
+    void refreshStatus(statusController.signal);
+    return () => statusController.abort();
+  }, []);
+
+  async function refreshStatus(signal?: AbortSignal) {
+    try {
+      const response = await fetch('/api/status', { signal });
+      if (!response.ok) throw new Error('Status unavailable');
+      const payload = await response.json() as { configured?: boolean };
+      if (!signal?.aborted) setProviderReady(typeof payload.configured === 'boolean' ? payload.configured : null);
+    } catch { if (!signal?.aborted) setProviderReady(null); }
+  }
 
   function reset() { if (busy) return; setStory(''); setReview(null); setContext(''); setAnswers({}); setDecisions([]); setError(''); setSnapshot(''); editor.current?.focus(); }
   function demo() {
@@ -73,7 +86,6 @@ export default function Home() {
   async function analyze() {
     if (busy) return;
     if (story.trim().length < 30) { setError('Добавьте стори: минимум 30 символов.'); editor.current?.focus(); return; }
-    if (!key.trim()) { setSettings(true); setError('Для AI-анализа добавьте Claude API-ключ. Демо-разбор доступен без ключа.'); return; }
     setBusy(true); setError('');
     const currentSnapshot = JSON.stringify([story, context, language]);
     const requestController = new AbortController(); controller.current = requestController;
@@ -81,7 +93,7 @@ export default function Home() {
     const submittedAnswers = !stale && review ? review.findings.filter(f => answers[f.id]?.trim()).map(f => ({ findingId: f.id, question: f.question, answer: answers[f.id].trim() })) : [];
     const combinedAnswers = [...decisions, ...submittedAnswers];
     try {
-      const response = await fetch('/api/review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: requestController.signal, body: JSON.stringify({ story, context, language, apiKey: key, model, answers: combinedAnswers }) });
+      const response = await fetch('/api/review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: requestController.signal, body: JSON.stringify({ story, context, language, answers: combinedAnswers }) });
       const payload = await response.json() as Review & { error?: string };
       if (!response.ok) throw new Error(payload.error || 'Не удалось выполнить анализ.');
       setReview(payload); setSnapshot(currentSnapshot); setAnswers({}); setDecisions(combinedAnswers); setTab('review'); setFilter('all');
@@ -99,10 +111,10 @@ export default function Home() {
       <div className="rail-divider"/>
       <div className="rail-label">НАЧАТЬ С ПРИМЕРА</div>
       <button className="sample-link" onClick={demo} disabled={busy}><FileText size={17}/><span>Submitted Order Details<small>WKSP-ORDS-3 · User story</small></span><ChevronRight size={15}/></button>
-      <div className="rail-bottom"><div className="rail-note"><span>✦</span><p>Меньше догадок.<br/><strong>Больше ясности.</strong></p><small>Бизнес-логика в центре<br/>каждой проверки.</small></div><button className="rail-nav" onClick={() => setSettings(true)}><Settings2 size={18}/><span>Подключение AI</span><span className={`connection-dot ${key ? 'connected' : ''}`}/></button><div className="profile"><span>BA</span><div>Business Analyst<small>Личное пространство</small></div></div></div>
+      <div className="rail-bottom"><div className="rail-note"><span>✦</span><p>Меньше догадок.<br/><strong>Больше ясности.</strong></p><small>Бизнес-логика в центре<br/>каждой проверки.</small></div><button className="rail-nav" onClick={() => setSettings(true)}><Sparkles size={18}/><span>Бесплатная AI-модель</span><span className={`connection-dot ${providerReady ? 'connected' : ''}`}/></button><div className="profile"><span>BA</span><div>Business Analyst<small>Личное пространство</small></div></div></div>
     </aside>
     <div className="main-shell">
-      <header className="topbar"><div><span className="muted">Workspace</span><ChevronRight size={13}/><span>Проверка стори</span></div><button className="connection-button" onClick={() => setSettings(true)}><span className={`connection-dot ${key ? 'connected' : ''}`}/><span>{key ? 'Ключ Claude добавлен' : 'Подключить Claude'}</span><Settings2 size={14}/></button></header>
+      <header className="topbar"><div><span className="muted">Workspace</span><ChevronRight size={13}/><span>Проверка стори</span></div><button className="connection-button" onClick={() => setSettings(true)}><span className={`connection-dot ${providerReady ? 'connected' : ''}`}/><span>{providerReady === false ? 'AI настраивается' : 'OpenRouter Free'}</span><CircleHelp size={14}/></button></header>
       <main>
         <div className="page-heading"><div><div className="eyebrow"><span/> ДЛЯ БИЗНЕС-АНАЛИТИКОВ</div><h1>От стори — к ясным требованиям<span>.</span></h1><p>Найдите неоднозначности, пробелы и противоречия в бизнес-логике.</p></div><button className="button secondary new-story" onClick={reset} disabled={busy}><Plus size={16}/>Новая стори</button></div>
         <div className="workspace">
@@ -112,8 +124,8 @@ export default function Home() {
             <div className="editor-wrap"><textarea ref={editor} aria-label="Текст user story" spellCheck={false} value={story} maxLength={50000} readOnly={busy} placeholder={'# Название user story\n\nAs a [role], I want [capability],\nso that [business outcome].\n\n## Business rules\n...\n\n## Acceptance criteria\n...'} onChange={e => { setStory(e.target.value); setAnswers({}); setDecisions([]); }}/></div>
             <div className="editor-status"><span><span className="status-dot"/> {story.trim() ? `${story.trim().split(/\s+/).length.toLocaleString('ru-RU')} слов` : 'Вставьте текст или загрузите файл'}</span><span>{story.length.toLocaleString('ru-RU')} / 50 000</span></div>
             <div className="context-block"><button className="context-toggle" onClick={() => setShowContext(!showContext)} aria-expanded={showContext}><span><Layers3 size={16}/>Бизнес-контекст <small>необязательно</small></span><ChevronDown size={16} className={showContext ? 'rotated' : ''}/></button>{showContext && <textarea aria-label="Бизнес-контекст" value={context} readOnly={busy} maxLength={10000} onChange={e => { setContext(e.target.value); setAnswers({}); setDecisions([]); }} placeholder="Связанные бизнес-правила, словарь терминов, границы фичи…"/>}</div>
-            <div className="run-controls"><label>Язык ревью<select value={language} disabled={busy} onChange={e => { setLanguage(e.target.value); setAnswers({}); }}><option value="ru">Русский</option><option value="en">English</option></select></label><button className="button primary" onClick={() => void analyze()} disabled={busy || !story.trim()}>{busy ? <LoaderCircle size={17} className="spin"/> : <Sparkles size={17}/>} {busy ? 'Анализируем…' : answered && !stale ? `Учесть ответы (${answered})` : 'Проверить стори'}{!busy && <ArrowRight size={16}/>}</button></div>
-            <p className="data-note"><ShieldCheck size={12}/> При проверке текст и контекст передаются Anthropic.</p>
+            <div className="run-controls"><label>Язык ревью<select value={language} disabled={busy} onChange={e => { setLanguage(e.target.value); setAnswers({}); }}><option value="ru">Русский</option><option value="en">English</option></select></label><button className="button primary" onClick={() => void analyze()} disabled={busy || !story.trim() || providerReady === false}>{busy ? <LoaderCircle size={17} className="spin"/> : <Sparkles size={17}/>} {busy ? 'Анализируем…' : answered && !stale ? `Учесть ответы (${answered})` : 'Проверить стори'}{!busy && <ArrowRight size={16}/>}</button></div>
+            <p className="data-note"><ShieldCheck size={12}/> Текст передаётся OpenRouter и провайдеру выбранной модели.</p>
           </section>
           <section className="results-panel" aria-label="Результаты проверки" aria-busy={busy}>
             <div className="panel-heading"><div><span className="section-number">02</span><h2>Результат проверки</h2></div>{review && <button className="icon-button" title="Экспорт ревью Markdown" aria-label="Экспорт ревью Markdown" onClick={() => download(reportMarkdown(review), 'storylens-review.md')}><ArrowDownToLine size={17}/></button>}</div>
@@ -141,7 +153,7 @@ export default function Home() {
         <footer className="page-footer"><span>STORYLENS <span> / </span> Требования, которые понимают одинаково.</span><span>Решения остаются за BA.</span></footer>
       </main>
     </div>
-    <dialog ref={settingsRef} className="modal" onCancel={() => setSettings(false)} onClick={e => { if (e.target === settingsRef.current) setSettings(false); }}><div className="modal-heading"><span className="modal-icon"><Sparkles size={22}/></span><button className="icon-button" aria-label="Закрыть настройки" onClick={() => setSettings(false)}><X size={20}/></button></div><h2>Подключение Claude</h2><p>Ключ используется сервером для запроса к Anthropic. В приложении он хранится только в памяти вкладки и сбрасывается после перезагрузки.</p><label className="field-label" htmlFor="api-key">Claude API-ключ</label><input id="api-key" type="password" value={key} autoComplete="off" spellCheck={false} placeholder="sk-ant-…" onChange={e => setKey(e.target.value)} maxLength={512}/><label className="field-label" htmlFor="model-id">Модель</label><input id="model-id" value={model} onChange={e => setModel(e.target.value)} placeholder="claude-sonnet-4-6" maxLength={110}/><small>Нужна модель с поддержкой Structured Outputs. Стори, контекст и ответы BA передаются Anthropic только при запуске проверки. Приложение не сохраняет документы и ключ на сервере.</small><div className="modal-actions"><button className="text-button" onClick={() => { setKey(''); setSettings(false); setNotice('Ключ удалён из памяти вкладки'); }}>Удалить ключ</button><button className="button primary" onClick={() => setSettings(false)}>Готово<Check size={16}/></button></div></dialog>
+    <dialog ref={settingsRef} className="modal" onCancel={() => setSettings(false)} onClick={e => { if (e.target === settingsRef.current) setSettings(false); }}><div className="modal-heading"><span className="modal-icon"><Sparkles size={22}/></span><button className="icon-button" aria-label="Закрыть информацию о модели" onClick={() => setSettings(false)}><X size={20}/></button></div><h2>Бесплатный AI-анализ</h2><p>OpenRouter Free выбирает доступную бесплатную модель для проверки стори. Личный API-ключ не требуется. Название использованной модели отображается в результате.</p><small>Доступность моделей и число бесплатных проверок ограничены OpenRouter. При исчерпании лимита приложение предложит повторить позже. Платные модели не подключаются автоматически.</small>{providerReady === false && <p role="status">AI-подключение ещё настраивается. Подготовленный демо-разбор уже доступен.</p>}<div className="modal-actions"><button className="text-button" onClick={() => void refreshStatus()}>Обновить статус</button><button className="button primary" onClick={() => setSettings(false)}>Понятно<Check size={16}/></button></div></dialog>
     <dialog ref={policyRef} className="modal policy-modal" onCancel={() => setPolicy(false)} onClick={e => { if (e.target === policyRef.current) setPolicy(false); }}><div className="modal-heading"><span className="modal-icon"><ShieldCheck size={23}/></span><button className="icon-button" aria-label="Закрыть правила" onClick={() => setPolicy(false)}><X size={20}/></button></div><div className="eyebrow">BUSINESS-FIRST · V1</div><h2>Проверяем бизнес-логику</h2><p>Хорошая user story объясняет цель, правила и результат фичи. Описание нативных элементов интерфейса обычно не требуется.</p>{[
       ['Что проверяем', 'Права ролей, ограничения, расчёты, бизнес-значения, связи статусов, условия и проверяемый результат.'],
       ['Когда важен UI', 'Если поведение отличается от стандартного или нужно определить конкретную информацию: бизнес-лимит, состав полей, отображение статуса.'],
