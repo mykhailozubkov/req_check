@@ -11,7 +11,7 @@ export async function POST(request) {
     rateLimiter: async () => {
       if (!env.AI_RATE_LIMITER) {
         if (import.meta.env.DEV) return true;
-        throw new ReviewError('AI-анализ временно недоступен.', 503);
+        throw new ReviewError('AI review is temporarily unavailable.', 503);
       }
       const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
       const { success } = await env.AI_RATE_LIMITER.limit({ key: `req-check:${ip}` });

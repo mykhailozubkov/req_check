@@ -24,7 +24,7 @@ Acceptance criteria:
 const response = await fetch(new URL('/api/review', origin), {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', Origin: origin },
-  body: JSON.stringify({ story, language: 'ru', context: '', answers: [] }),
+  body: JSON.stringify({ story, language: 'en', context: '', answers: [] }),
   signal: AbortSignal.timeout(130000),
 });
 const result = await response.json();

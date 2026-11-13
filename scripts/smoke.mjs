@@ -2,7 +2,7 @@ const origin = process.argv[2] ?? 'https://req-check.mykhailo-zubkov.workers.dev
 const page = await fetch(origin, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
 const html = await page.text();
 console.log(JSON.stringify({ path: '/', status: page.status, isApp: html.includes('Storylens') }));
-if (page.status !== 200 || !html.includes('Storylens') || !html.includes('OpenRouter Free') || html.includes('Подключить Claude') || html.includes('Бизнес-логика в фокусе.')) process.exitCode = 1;
+if (page.status !== 200 || !html.includes('Storylens') || !html.includes('OpenRouter Free') || !html.includes('lang="en"') || /[А-Яа-яЁё]/.test(html)) process.exitCode = 1;
 const assets = [...new Set([...html.matchAll(/\b(?:src|href)=["']([^"']+)["']/g)].map(m => m[1]))]
   .map(path => new URL(path, origin))
   .filter(url => url.origin === new URL(origin).origin && url.pathname.startsWith('/_next/static/'));
@@ -24,4 +24,4 @@ const review = await fetch(new URL('/api/review', origin), {
 });
 const result = await review.json();
 console.log(JSON.stringify({ path: '/api/review', status: review.status, error: result.error }));
-if (review.status !== 400) process.exitCode = 1;
+if (review.status !== 400 || /[А-Яа-яЁё]/.test(result.error ?? '')) process.exitCode = 1;

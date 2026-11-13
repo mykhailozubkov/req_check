@@ -94,7 +94,7 @@ test('network failure is surfaced without retry or sample fallback', async () =>
 });
 test('truncated provider response and invalid JSON are rejected', async () => {
   for (const result of [{ choices: [{ finish_reason: 'length', message: { content: JSON.stringify(valid()) } }] }, { choices: [{ finish_reason: 'stop', message: { content: '{' } }] }]) {
-    await assert.rejects(analyzeStory(input, { apiKey: secret, fetchImpl: async () => Response.json(result) }), /неполный/);
+    await assert.rejects(analyzeStory(input, { apiKey: secret, fetchImpl: async () => Response.json(result) }), /incomplete/);
   }
 });
 
@@ -115,5 +115,5 @@ test('handles provider errors inside HTTP 200 without treating them as valid rev
   assert.equal(response.status, 429); assert.ok(!(await response.text()).includes('private upstream details'));
 });
 test('does not contact the provider with a malformed server key', async () => {
-  await assert.rejects(analyzeStory(input, { apiKey: 'invalid\r\nkey', fetchImpl: () => assert.fail('Must not call provider') }), /не настроен/);
+  await assert.rejects(analyzeStory(input, { apiKey: 'invalid\r\nkey', fetchImpl: () => assert.fail('Must not call provider') }), /not configured/);
 });
